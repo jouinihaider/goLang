@@ -1,10 +1,10 @@
-// dictionary.go
-
 package dictionary
 
 import (
+	
+	"encoding/gob"
 	"errors"
-	"sync"
+	"os"
 )
 
 type Entry struct {
@@ -15,69 +15,79 @@ func (e Entry) String() string {
 	return e.Definition
 }
 
-type dictionaryOperation struct {
-	word       string
-	definition string
-}
-
 type Dictionary struct {
-	entries   map[string]Entry
-	operation chan dictionaryOperation
-	mu        sync.RWMutex
+	entries map[string]Entry
+	file    string
 }
 
-func New() *Dictionary {
+func New(file string) (*Dictionary, error) {
 	d := &Dictionary{
-		entries:   make(map[string]Entry),
-		operation: make(chan dictionaryOperation),
+		entries: make(map[string]Entry),
+		file:    file,
 	}
-	go d.processOperations()
-	return d
+	err := d.loadFromFile()
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
 }
 
-func (d *Dictionary) Add(word, definition string) {
-	d.operation <- dictionaryOperation{word, definition}
+func (d *Dictionary) Add(word string, definition string) {
+	entry := Entry{Definition: definition}
+	d.entries[word] = entry
 }
 
 func (d *Dictionary) Get(word string) (Entry, error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	entry, found := d.entries[word]
-	if !found {
-		return Entry{}, errors.New("word not found in the dictionary")
+	entry, exists := d.entries[word]
+	if !exists {
+		return Entry{}, errors.New("word not found")
 	}
 	return entry, nil
 }
 
 func (d *Dictionary) Remove(word string) {
-	d.operation <- dictionaryOperation{word, ""} // Empty definition signifies removal
+	delete(d.entries, word)
 }
 
 func (d *Dictionary) List() ([]string, map[string]Entry) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	var words []string
+	var wordList []string
 	for word := range d.entries {
-		words = append(words, word)
+		wordList = append(wordList, word)
 	}
-	return words, d.entries
+	return wordList, d.entries
 }
 
-func (d *Dictionary) processOperations() {
-	for {
-		select {
-		case op := <-d.operation:
-			d.mu.Lock()
-			if op.definition == "" {
-				// If definition is empty, it's a removal operation
-				delete(d.entries, op.word)
-			} else {
-				// Otherwise, it's an addition operation
-				d.entries[op.word] = Entry{Definition: op.definition}
-			}
-			d.mu.Unlock()
-		}
+func (d *Dictionary) SaveToFile() error {
+	file, err := os.Create(d.file)
+	if err != nil {
+		return err
 	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(file)
+	err = encoder.Encode(d.entries)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dictionary) loadFromFile() error {
+	file, err := os.Open(d.file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // File doesn't exist, start with an empty dictionary
+		}
+		return err
+	}
+	defer file.Close()
+
+	decoder := gob.NewDecoder(file)
+	err = decoder.Decode(&d.entries)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

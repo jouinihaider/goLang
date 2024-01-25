@@ -3,14 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
 	"estiam/dictionary"
+	"estiam/route"
 )
 
-const dictionaryFile = "dictionary.gob" // replace with your desired filename
-
+const dictionaryFile = "your_dictionary_file.gob"
 
 func main() {
 	d, err := dictionary.New(dictionaryFile)
@@ -19,10 +20,48 @@ func main() {
 		return
 	}
 
+	// Set up Gorilla Mux router and register routes
+	r := route.SetupRoutes(d)
+
+	// Start the HTTP server concurrently
+	go func() {
+		port := 8080
+		addr := fmt.Sprintf(":%d", port)
+		fmt.Printf("Server listening on %s...\n", addr)
+		http.ListenAndServe(addr, r)
+	}()
+
+	// Start the console-based interface
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Println("Enter action (add, define, remove, list, exit):")
+		fmt.Println("Choose interaction method (console, http, exit):")
+		method, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+			continue
+		}
+
+		method = strings.TrimSpace(method)
+
+		switch method {
+		case "console":
+			consoleInterface(d, reader)
+		case "http":
+			// HTTP interface is already running in the goroutine
+			fmt.Println("Use a tool like curl or a web browser to interact with the HTTP API.")
+		case "exit":
+			fmt.Println("Exiting program.")
+			return
+		default:
+			fmt.Println("Invalid method. Please enter console, http, or exit.")
+		}
+	}
+}
+
+func consoleInterface(d *dictionary.Dictionary, reader *bufio.Reader) {
+	for {
+		fmt.Println("Enter action (add, define, remove, list, back):")
 		action, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading input:", err)
@@ -40,14 +79,14 @@ func main() {
 			actionRemove(d, reader)
 		case "list":
 			actionList(d)
-		case "exit":
-			fmt.Println("Exiting program.")
+		case "back":
 			return
 		default:
-			fmt.Println("Invalid action. Please enter add, define, remove, list, or exit.")
+			fmt.Println("Invalid action. Please enter add, define, remove, list, or back.")
 		}
 	}
 }
+
 
 func actionAdd(d *dictionary.Dictionary, reader *bufio.Reader) {
 	fmt.Println("Enter word:")

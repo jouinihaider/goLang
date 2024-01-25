@@ -91,3 +91,8 @@ func (d *Dictionary) loadFromFile() error {
 
 	return nil
 }
+
+
+func (d *Dictionary) RemoveByWord(word string) {
+    delete(d.entries, word)
+}

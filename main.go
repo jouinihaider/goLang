@@ -9,8 +9,16 @@ import (
 	"estiam/dictionary"
 )
 
+const dictionaryFile = "dictionary.gob" // replace with your desired filename
+
+
 func main() {
-	d := dictionary.New()
+	d, err := dictionary.New(dictionaryFile)
+	if err != nil {
+		fmt.Println("Error creating dictionary:", err)
+		return
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 
 	for {

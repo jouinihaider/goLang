@@ -14,8 +14,8 @@ import (
 func SetupRoutes(d *dictionary.Dictionary) *mux.Router {
     r := mux.NewRouter()
 
-    // Add the logging middleware to log each request
-    r.Use(middleware.LoggingMiddleware)
+    // Add the authentication middleware to secure your routes
+    r.Use(middleware.AuthMiddleware)
 
     // Add your existing routes
     r.HandleFunc("/add", AddEntryHandler(d)).Methods("POST")

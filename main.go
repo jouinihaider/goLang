@@ -16,7 +16,7 @@ import (
     "estiam/middleware"
 )
 
-const dictionaryFile = "your_dictionary_file.gob"
+const dictionaryFile = "dictionary.gob"
 
 func main() {
     d, err := dictionary.New(dictionaryFile)
@@ -30,8 +30,8 @@ func main() {
     // Start the HTTP server with the router
     http.Handle("/", r)
 
-    // Use the logging middleware globally for all routes
-    http.ListenAndServe(":8080", middleware.LoggingMiddleware(http.DefaultServeMux))
+    // Use the logging and authentication middlewares globally for all routes
+    http.ListenAndServe(":8080", middleware.LoggingMiddleware(middleware.AuthMiddleware(http.DefaultServeMux)))
 }
 
 // Existing functions for console-based interactions

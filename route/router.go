@@ -1,14 +1,23 @@
+// route/router.go
+
 package route
 
 import (
     "estiam/dictionary"
     "net/http"
+
     "github.com/gorilla/mux"
+    "estiam/middleware"
 )
 
+// SetupRoutes initializes and returns the Gorilla Mux router with routes.
 func SetupRoutes(d *dictionary.Dictionary) *mux.Router {
     r := mux.NewRouter()
 
+    // Add the logging middleware to log each request
+    r.Use(middleware.LoggingMiddleware)
+
+    // Add your existing routes
     r.HandleFunc("/add", AddEntryHandler(d)).Methods("POST")
     r.HandleFunc("/get/{word}", GetDefinitionHandler(d)).Methods("GET")
     r.HandleFunc("/remove/{word}", RemoveEntryHandler(d)).Methods("DELETE")

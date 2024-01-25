@@ -7,7 +7,9 @@ import (
 	"os"
 )
 
+// Update Entry type to include a Word field
 type Entry struct {
+	Word       string // Add this line for the Word field
 	Definition string
 }
 
